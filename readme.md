@@ -9,8 +9,9 @@ Every image is built from the same source application (Actix Web 4 + Prometheus 
 ### Dockerfile.glibc `x86_64-unknown-linux-gnu`
 
 **Pros:**
-- Fast response time (~0.5ms on the `/metrics` endpoint).
+- Fast response time (~0.3ms on the `/metrics` endpoint).
 - Fast compile time (~6 minutes compiling dependencies + 6s compiling main app).
+![image](https://github.com/bangbaew/rust-dockerfile-collection-cargo-chef/assets/29559559/d1785d68-dd28-45f3-ba6b-8e2a65f3ea4b)
 
 **Cons:**
 - High runtime memory usage (startup: 6MB, peak: 25MB).
@@ -39,7 +40,7 @@ Every image is built from the same source application (Actix Web 4 + Prometheus 
 ![image](https://github.com/bangbaew/rust-dockerfile-collection-cargo-chef/assets/29559559/3bdf9598-5380-437d-bc7d-95a79dd9b6ca)
 
 **Cons:**
-- Medium response time (~1ms on the `/metrics` endpoint).
+- Medium response time (~0.7ms on the `/metrics` endpoint).
 
 ---
 This comparison provides valuable insights into the trade-offs between different Rust build targets when building Docker images for Rust projects.
