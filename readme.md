@@ -10,7 +10,7 @@ Every image is built from the same source application (Actix Web 4 + Prometheus 
 
 **Pros:**
 - Fast response time (~0.5ms on the `/metrics` endpoint).
-- Fast compile time (~6 minutes compiling dependencies + 30ms compiling main app).
+- Fast compile time (~6 minutes compiling dependencies + 6s compiling main app).
 
 **Cons:**
 - High runtime memory usage (startup: 6MB, peak: 20MB).
