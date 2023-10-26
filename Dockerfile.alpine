@@ -1,0 +1,42 @@
+FROM lukemathwalker/cargo-chef:latest-rust-alpine AS base
+
+FROM base AS chef
+WORKDIR /app
+RUN apk add pkgconfig libressl-dev --no-cache
+
+# Build only dependencies to speed up subsequent builds
+ADD Cargo.toml Cargo.lock ./
+RUN mkdir -p src
+RUN echo "fn main() {}" > src/main.rs
+RUN cargo fetch
+
+FROM chef AS planner
+COPY src src
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS cooker
+COPY --from=planner /app/recipe.json recipe.json
+# Cache the whole release target here
+RUN cargo chef cook --release --recipe-path recipe.json
+
+FROM cooker AS builder
+# Build application
+COPY src src
+RUN cat src/main.rs > temp && mv temp src/main.rs
+RUN cargo build --release --bin main
+RUN echo "Size of stripped binary = $(echo "$(stat -c%s 'target/release/main')/1024000" | bc -l) MB."
+RUN readelf -p .comment target/release/main
+
+# Add non-root user
+FROM base AS user
+RUN addgroup -S rootless && adduser -S rootless -G rootless
+RUN echo "Size of /etc/passwd = $(echo "$(stat -c%s '/etc/passwd')/1024000" | bc -l) MB."
+RUN echo "Size of /etc/ssl = $(echo "$(stat -c%s '/etc/ssl')/1024000" | bc -l) MB."
+
+# We do not need the Rust toolchain to run the binary!
+FROM scratch
+COPY --from=base /etc/ssl /etc/ssl
+COPY --from=user /etc/passwd /etc/passwd
+COPY --from=builder /app/target/release/main /
+USER rootless
+ENTRYPOINT ["/main"]

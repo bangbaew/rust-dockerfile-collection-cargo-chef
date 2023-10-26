@@ -1,0 +1,40 @@
+# Using the `rust-musl-builder` as base image, instead of
+# the official Rust toolchain
+FROM clux/muslrust:stable AS base
+WORKDIR /app
+RUN apt update
+RUN apt install -y bc
+
+FROM base AS chef
+RUN cargo install cargo-chef
+
+FROM chef AS planner
+# Build only dependencies to speed up subsequent builds
+ADD Cargo.toml Cargo.lock ./
+RUN mkdir -p src
+RUN echo "fn main() {}" > src/main.rs
+RUN cargo fetch
+
+COPY src src
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+# Notice that we are specifying the --target flag!
+RUN cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path recipe.json
+COPY src src
+RUN cat src/main.rs > temp && mv temp src/main.rs
+RUN cargo build --release --target x86_64-unknown-linux-musl
+RUN echo "Size of stripped binary = $(echo "$(stat -c%s '/app/target/x86_64-unknown-linux-musl/release/main')/1024000" | bc -l) MB."
+RUN readelf -p .comment /app/target/x86_64-unknown-linux-musl/release/main
+
+# Add a non-root user
+FROM base AS user
+RUN adduser rootless
+RUN echo "Size of /etc/passwd = $(echo "$(stat -c%s '/etc/passwd')/1024000" | bc -l) MB."
+
+FROM scratch
+COPY --from=user /etc/passwd /etc/passwd
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/main /
+USER rootless
+CMD ["/main"]

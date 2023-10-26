@@ -1,0 +1,37 @@
+FROM lukemathwalker/cargo-chef:latest-rust-latest AS chef
+WORKDIR /app
+
+RUN apt update
+RUN apt install -y bc
+# Build only dependencies to speed up subsequent builds
+ADD Cargo.toml Cargo.lock ./
+RUN mkdir -p src
+RUN echo "fn main() {}" > src/main.rs
+RUN cargo fetch
+
+FROM chef AS planner
+COPY src src
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS cooker
+COPY --from=planner /app/recipe.json recipe.json
+# Cache the whole release target here
+RUN cargo chef cook --release --recipe-path recipe.json
+
+FROM cooker AS builder
+# Build application
+COPY src src
+RUN cat src/main.rs > temp && mv temp src/main.rs
+RUN cargo build --release --bin main
+RUN echo "Size of stripped binary = $(echo "$(stat -c%s 'target/release/main')/1024000" | bc -l) MB."
+RUN readelf -p .comment target/release/main
+
+# We do not need the Rust toolchain to run the binary!
+FROM frolvlad/alpine-glibc:alpine-3.17 AS runner
+# RUN apk add libssl1.1 --no-cache
+COPY --from=builder /app/target/release/main /
+
+RUN addgroup --system --gid 1001 rootless
+RUN adduser --system --uid 1001 rootless
+USER rootless
+ENTRYPOINT ["/main"]
