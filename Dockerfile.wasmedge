@@ -27,6 +27,7 @@ RUN cargo build --release --target wasm32-wasi
 FROM wasmedge/slim:0.13.4 as wasmedge
 WORKDIR /
 
+# Compiling AOT will reduce memory usage from 60MB to 20MB
 FROM wasmedge as compiler
 COPY --from=builder /app/target/wasm32-wasi/release/main.wasm .
 RUN ["wasmedge", "compile", "main.wasm" , "aot.wasm"]
