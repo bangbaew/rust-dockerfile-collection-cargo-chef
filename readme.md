@@ -42,6 +42,8 @@ Every image is built from the same source application (Actix Web 4 + Prometheus 
 **Cons:**
 - Medium response time (~0.7ms on the `/metrics` endpoint).
 
+![image](https://github.com/bangbaew/rust-dockerfile-collection-cargo-chef/assets/29559559/9b61f7ca-de5c-453c-a428-5dfff6278124)
+
 ---
 This comparison provides valuable insights into the trade-offs between different Rust build targets when building Docker images for Rust projects.
 I haven't done any load-testing to compare runtime performance yet.
