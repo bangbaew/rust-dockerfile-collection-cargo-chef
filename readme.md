@@ -31,7 +31,7 @@ Every image is built from the same source application (Actix Web 4 + Prometheus 
 ### Dockerfile.musl `x86_64-unknown-linux-musl`
 
 **Pros:**
-- Low runtime memory usage (startup: 3MB, peak: 7MB).
+- Low runtime memory usage (startup: 3MB, peak: 5MB).
 - Fast compile time (~6 minutes compiling dependencies + 30s compiling main app).
 - Able to use `scratch` as final image
 
