@@ -22,7 +22,9 @@ RUN cargo chef cook --release --recipe-path recipe.json
 FROM cooker AS builder
 # Build application
 COPY src src
-RUN cat src/main.rs > temp && mv temp src/main.rs
+RUN cat src/main.rs > temp && mv temp src/main.r
+RUN echo "Size of binary = $(echo "$(stat -c%s 'target/release/main')/1024000" | bc -l) MB."
+RUN strip target/release/mains
 RUN cargo build --release --bin main
 RUN echo "Size of stripped binary = $(echo "$(stat -c%s 'target/release/main')/1024000" | bc -l) MB."
 RUN readelf -p .comment target/release/main
@@ -38,5 +40,6 @@ FROM scratch
 COPY --from=base /etc/ssl /etc/ssl
 COPY --from=user /etc/passwd /etc/passwd
 COPY --from=builder /app/target/release/main /
+
 USER rootless
 ENTRYPOINT ["/main"]

@@ -1,8 +1,28 @@
-FROM lukemathwalker/cargo-chef:latest-rust-latest AS chef
-WORKDIR /app
+FROM lukemathwalker/cargo-chef:latest-rust-latest AS base
 
+RUN wget -q $(curl -s https://api.github.com/repos/rui314/mold/releases/latest | grep "mold-.*x86_64-linux.tar.gz" | cut -d '"' -f 4 | sed -n '2p') -O mold.tar.gz
+
+# Extract the mold executable
+RUN tar -zxf mold.tar.gz --strip-component=2 --wildcards mold-*-x86_64-linux/bin/mold
+RUN chmod +x mold
+RUN mv mold /usr/bin/ld
+
+WORKDIR /app
+COPY prisma/prisma-cli prisma/prisma-cli
+
+FROM base AS generator
+WORKDIR /app/prisma/prisma-cli
+RUN cargo fetch
+RUN cargo build --release
+RUN cargo run --release version
+COPY prisma/schema.prisma prisma/schema.prisma
+RUN sed -i 's/cargo prisma/cargo run --release/g' prisma/schema.prisma
+RUN cargo run --release generate
+
+FROM base AS chef
 RUN apt update
-RUN apt install -y bc
+RUN apt install -y protobuf-compiler bc
+
 # Build only dependencies to speed up subsequent builds
 ADD Cargo.toml Cargo.lock ./
 RUN mkdir -p src
@@ -20,9 +40,11 @@ RUN cargo chef cook --release --recipe-path recipe.json
 
 FROM cooker AS builder
 # Build application
+COPY prisma/schema.prisma prisma/prisma-cli/prisma/schema.prisma
 COPY src src
 RUN cat src/main.rs > temp && mv temp src/main.rs
-RUN cargo build --release --bin main
+COPY --from=generator /app/src/app/db/prisma.rs /app/src/app/db/prisma.rs
+RUN cargo build --release
 RUN echo "Size of binary = $(echo "$(stat -c%s 'target/release/main')/1024000" | bc -l) MB."
 RUN strip target/release/main
 RUN echo "Size of stripped binary = $(echo "$(stat -c%s 'target/release/main')/1024000" | bc -l) MB."
