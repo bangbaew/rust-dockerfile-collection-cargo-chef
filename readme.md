@@ -20,7 +20,7 @@ Every image is built from the same source application (Actix Web 4 + Prometheus 
 ### Dockerfile.alpine `x86_64-alpine-linux-musl`
 
 **Pros:**
-- Low runtime memory usage (startup: 3MB, peak: 7MB).
+- Low runtime memory usage (startup: 3MB, peak: 8MB).
 - Able to use `scratch` as final image
 
 **Cons:**
@@ -31,9 +31,11 @@ Every image is built from the same source application (Actix Web 4 + Prometheus 
 ### Dockerfile.musl `x86_64-unknown-linux-musl`
 
 **Pros:**
-- Low runtime memory usage (startup: 3MB, peak: 5MB).
+- Low runtime memory usage (startup: 3MB, peak: 6MB).
 - Fast compile time (~6 minutes compiling dependencies + 30s compiling main app).
 - Able to use `scratch` as final image
+
+![image](https://github.com/bangbaew/rust-dockerfile-collection-cargo-chef/assets/29559559/3bdf9598-5380-437d-bc7d-95a79dd9b6ca)
 
 **Cons:**
 - Medium response time (~1ms on the `/metrics` endpoint).
