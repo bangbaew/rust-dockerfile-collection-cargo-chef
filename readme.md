@@ -14,16 +14,19 @@ Every image is built from the same source application (Actix Web 4 + Prometheus 
 
 **Cons:**
 - High runtime memory usage (startup: 6MB, peak: 20MB).
-
+- Not able to use `scratch` as final image
+  
 ---
 ### Dockerfile.alpine `x86_64-alpine-linux-musl`
 
 **Pros:**
 - Low runtime memory usage (startup: 3MB, peak: 7MB).
+- Able to use `scratch` as final image
 
 **Cons:**
 - Slow response time (~3ms on the `/metrics` endpoint).
 - Slow compile time (~10 minutes compiling dependencies + 1 minute compiling main app).
+- Needs to copy `/etc/ssl` to `scratch` image
 
 ---
 ### Dockerfile.musl `x86_64-unknown-linux-musl`
@@ -31,7 +34,9 @@ Every image is built from the same source application (Actix Web 4 + Prometheus 
 **Pros:**
 - Low runtime memory usage (startup: 3MB, peak: 7MB).
 - Fast compile time (~6 minutes compiling dependencies + 30ms compiling main app).
-
+- Able to use `scratch` as final image
+- No needs to copy `/etc/ssl` to `scratch` image
+  
 **Cons:**
 - Medium response time (~1ms on the `/metrics` endpoint).
 
