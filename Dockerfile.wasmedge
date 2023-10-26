@@ -1,0 +1,37 @@
+FROM lukemathwalker/cargo-chef:latest-rust-latest AS chef
+WORKDIR /app
+RUN rustup target add wasm32-wasi
+
+# Build only dependencies to speed up subsequent builds
+ADD Cargo.toml Cargo.lock ./
+RUN mkdir -p src
+RUN echo "fn main() {}" > src/main.rs
+RUN cargo fetch
+
+FROM chef AS planner
+COPY src src
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS cooker
+COPY --from=planner /app/recipe.json recipe.json
+# Cache the whole release target here
+RUN cargo chef cook --release --recipe-path recipe.json --target wasm32-wasi
+
+FROM cooker AS builder
+# Build application
+COPY src src
+RUN cat src/main.rs > temp && mv temp src/main.rs
+
+RUN cargo build --release --target wasm32-wasi
+
+FROM wasmedge/slim:0.13.4 as wasmedge
+WORKDIR /
+
+FROM wasmedge as compiler
+COPY --from=builder /app/target/wasm32-wasi/release/main.wasm .
+RUN ["wasmedge", "compile", "main.wasm" , "aot.wasm"]
+
+FROM wasmedge
+COPY libwasmedge_rustls.so /usr/local/lib/wasmedge/
+COPY --from=compiler /aot.wasm .
+ENTRYPOINT ["wasmedge", "aot.wasm"]
